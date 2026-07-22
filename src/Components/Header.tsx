@@ -17,10 +17,11 @@ const Header = () => {
       </div>
 
       
-      <div className="hidden md:flex gap-6 absolute left-1/2 -translate-x-1/2">
+      <div className="hidden md:flex justify-center space-x-8 absolute left-1/2 -translate-x-1/2">
         <Link to="/" className="text-sm md:text-lg">Home</Link>
         <Link to="/favorites" className="text-sm md:text-lg">Favorites</Link>
         <Link to="/save" className="text-sm md:text-lg">Save</Link>
+        <Link to="/properties" className="text-sm md:text-lg">Properties</Link>
       </div>
 
       
@@ -45,6 +46,8 @@ const Header = () => {
           <Link to="/" className="text-lg" onClick={handleMenuToggle}>Home</Link>
           <Link to="/favorites" className="text-lg" onClick={handleMenuToggle}>Favorites</Link>
           <Link to="/save" className="text-lg" onClick={handleMenuToggle}>Save</Link>
+          <Link to="/properties" className="text-lg">Properties</Link>
+          
           <Link to="/login" className="text-lg" onClick={handleMenuToggle}>Login</Link>
           <Link to="/register" className="text-lg" onClick={handleMenuToggle}>Register</Link>
         </div>

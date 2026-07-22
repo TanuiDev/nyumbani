@@ -1,7 +1,9 @@
+import Hero from "../Components/Hero"
+
 const Home = () => {
   return (
     <div>
-        <h1 className="text-black font-bold items-center">Hello</h1>      
+      <Hero />                  
     </div>
   )
 }
