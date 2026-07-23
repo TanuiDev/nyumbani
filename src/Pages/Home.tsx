@@ -1,9 +1,13 @@
+import Ctacards from "../Components/Ctacards"
+import Featured from "../Components/Featured"
 import Hero from "../Components/Hero"
 
 const Home = () => {
   return (
     <div>
-      <Hero />                  
+      <Hero />  
+      <Ctacards />
+      <Featured />                
     </div>
   )
 }
