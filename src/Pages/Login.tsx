@@ -1,34 +1,67 @@
-import { useState, FormEvent } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, Home, ShieldCheck } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
+import { useDispatch } from 'react-redux'
+import { useLoginMutation } from '../features/auth/loginAPI'
+import { loginSuccess } from '../features/auth/userSlice'
+
+// ---- Validation schema ----
+const loginSchema = yup.object({
+  email: yup
+    .string()
+    .required('Enter your email.')
+    .email('Enter a valid email address.'),
+  password: yup
+    .string()
+    .required('Enter your password.')
+    .min(6, 'Password must be at least 6 characters.'),
+  rememberMe: yup.boolean().default(false),
+})
+
+type LoginFormValues = yup.InferType<typeof loginSchema>
 
 const Login = () => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const dispatch = useDispatch()
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const [error, setError] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
+  // RTK Query mutation hook — gives us the call, loading state, and error
+  const [login, { isLoading }] = useLoginMutation()
 
-    if (!email || !password) {
-      setError('Enter your email and password.')
-      return
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<LoginFormValues>({
+    resolver: yupResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  })
 
-    setIsSubmitting(true)
+  const onSubmit = async (data: LoginFormValues) => {
     try {
-      // Replace with your real auth call
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      
+      const result = await login({
+        emailAddress: data.email,
+        password: data.password,
+      }).unwrap()
+
+      // Push the authenticated user/token into Redux state
+      dispatch(loginSuccess(result))
+
       navigate('/')
-    } catch {
-      setError('Could not log in. Check your details and try again.')
-    } finally {
-      setIsSubmitting(false)
+    } catch (err: any) {
+      setError('root', {
+        message:
+          err?.data?.message ?? 'Could not log in. Check your details and try again.',
+      })
     }
   }
 
@@ -41,7 +74,7 @@ const Login = () => {
           alt="Modern apartment building"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A140E] via-[#0A140E]/60 to-[#0A140E]/20" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#0A140E] via-[#0A140E]/60 to-[#0A140E]/20" />
 
         <div className="relative z-10 flex flex-col justify-between p-10 w-full">
           <Link to="/" className="flex items-center gap-2">
@@ -79,13 +112,13 @@ const Login = () => {
             <p className="text-sm text-gray-500">Log in to manage your saved homes and listings.</p>
           </div>
 
-          {error && (
+          {errors.root && (
             <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-700">
-              {error}
+              {errors.root.message}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Email
@@ -95,13 +128,17 @@ const Login = () => {
                 <input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   autoComplete="email"
-                  className="w-full pl-9 pr-3 py-3 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  {...register('email')}
+                  className={`w-full pl-9 pr-3 py-3 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                    errors.email ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 />
               </div>
+              {errors.email && (
+                <p className="mt-1.5 text-xs text-red-600">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
@@ -121,11 +158,12 @@ const Login = () => {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="w-full pl-9 pr-10 py-3 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  {...register('password')}
+                  className={`w-full pl-9 pr-10 py-3 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 />
                 <button
                   type="button"
@@ -136,13 +174,15 @@ const Login = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="mt-1.5 text-xs text-red-600">{errors.password.message}</p>
+              )}
             </div>
 
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                {...register('rememberMe')}
                 className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
               />
               <span className="text-sm text-gray-600">Keep me logged in</span>
@@ -150,10 +190,10 @@ const Login = () => {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isLoading}
               className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors duration-200"
             >
-              {isSubmitting ? 'Logging in...' : 'Log in'}
+              {isLoading ? 'Logging in...' : 'Log in'}
             </button>
           </form>
 

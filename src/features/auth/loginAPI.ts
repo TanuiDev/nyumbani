@@ -8,7 +8,7 @@ export type TloginResponse = {
     userName: string;
     emailAddress: string;
     phoneNumber: string;
-     role: string;
+    role: string;
   };
 };
 export type loginInput = {
