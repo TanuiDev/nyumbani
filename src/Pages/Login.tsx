@@ -17,7 +17,7 @@ const loginSchema = yup.object({
   password: yup
     .string()
     .required('Enter your password.')
-    .min(6, 'Password must be at least 6 characters.'),
+    .min(8, 'Password must be at least 8 characters.'),
   rememberMe: yup.boolean().default(false),
 })
 

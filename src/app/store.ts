@@ -1,8 +1,24 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import loginApi from "../features/auth/loginAPI";
-import storage from "redux-persist/lib/storage";
+import userReducer from "../features/auth/userSlice";
 
+// Workaround for a Vite/Rolldown CJS-interop bug where
+// `redux-persist/lib/storage`'s default export doesn't resolve
+// correctly through Vite's CJS interop, so use a plain localStorage adapter.
+const storage = {
+  getItem(key: string) {
+    return Promise.resolve(window.localStorage.getItem(key));
+  },
+  setItem(key: string, value: string) {
+    window.localStorage.setItem(key, value);
+    return Promise.resolve();
+  },
+  removeItem(key: string) {
+    window.localStorage.removeItem(key);
+    return Promise.resolve();
+  },
+};
 
 const persistConfig = {
   key: "root",
@@ -12,6 +28,7 @@ const persistConfig = {
 };
 
 const rootReducer = combineReducers({
+  user: userReducer,
   [loginApi.reducerPath]: loginApi.reducer,
 });
 
