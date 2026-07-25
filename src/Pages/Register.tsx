@@ -62,7 +62,7 @@ const Register = () => {
           alt="Cozy modern apartment interior"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A140E] via-[#0A140E]/60 to-[#0A140E]/20" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#0A140E] via-[#0A140E]/60 to-[#0A140E]/20" />
 
         <div className="relative z-10 flex flex-col justify-between p-8 w-full">
           <Link to="/" className="flex items-center gap-2">

@@ -6,7 +6,7 @@ const navLinks = [
   { to: "/", label: "Home" },
   { to: "/favorites", label: "Favorites" },
   { to: "/save", label: "Save" },
-  { to: "/properties", label: "Properties" },
+  { to: "/properties", label: "Browse Rentals" },
 ]
 
 const Header = () => {
