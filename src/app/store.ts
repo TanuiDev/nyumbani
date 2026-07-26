@@ -2,6 +2,7 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import loginApi from "../features/auth/loginAPI";
 import userReducer from "../features/auth/userSlice";
+import userApi  from "../features/auth/usersAPI";
 
 // Workaround for a Vite/Rolldown CJS-interop bug where
 // `redux-persist/lib/storage`'s default export doesn't resolve
@@ -30,6 +31,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
   user: userReducer,
   [loginApi.reducerPath]: loginApi.reducer,
+  [userApi.reducerPath]: userApi.reducer, 
 });
 
 
@@ -42,7 +44,8 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: false,
     })
-    .concat(loginApi.middleware),
+    .concat(loginApi.middleware)
+    .concat(userApi.middleware),
 
 })
 export const persistor = persistStore(store);

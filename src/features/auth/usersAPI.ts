@@ -41,3 +41,5 @@ const userApi = createApi({
 });
 
 export const { useCreateUserMutation } = userApi;
+
+export default userApi;
