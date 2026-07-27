@@ -8,6 +8,7 @@ export type Tuser = {
   emailAddress: string;
   password: string;
   phoneNumber: string;
+  profileImage: string | null;
   role: string;
   createdAt: string;
   updatedAt: string;

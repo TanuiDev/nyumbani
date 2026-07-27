@@ -1,55 +1,89 @@
-import { useState, FormEvent } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, User, AtSign, Phone, Home, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, AtSign, Phone, Home, ShieldCheck } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
+
+import { useCreateUserMutation } from '../features/auth/usersAPI'
+
+const registerSchema = yup.object({
+  userName: yup.string().required('Enter a username.'),
+  emailAddress: yup
+    .string()
+    .required('Email address is required.')
+    .email('Enter a valid email address.'),
+  phoneNumber: yup
+    .string()
+    .required('Phone number is required.')
+    
+    .matches(
+      /^(?:\+?254|0)(7|1)\d{8}$/,
+      'Phone number must be a valid Kenyan phone number.'
+    ),
+  password: yup
+    .string()
+    .required('Password is required.')
+    
+    .min(8, 'Password must be at least 8 characters.')
+    .matches(/[a-z]/, 'Password must include a lowercase letter.')
+    .matches(/[A-Z]/, 'Password must include an uppercase letter.')
+    .matches(/\d/, 'Password must include a number.')
+    .matches(/[^a-zA-Z0-9]/, 'Password must include a symbol.'),
+  confirmPassword: yup
+    .string()
+    .required('Confirm your password.')
+    .oneOf([yup.ref('password')], 'Passwords must match.'),
+  agreedToTerms: yup
+    .boolean()
+    .oneOf([true], 'You must agree to the terms to create an account.'),
+})
+
+type RegisterFormValues = yup.InferType<typeof registerSchema>
 
 const Register = () => {
   const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [error, setError] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
+  const [createUser, { isLoading }] = useCreateUserMutation()
 
-    if (!name || !username || !email || !phoneNumber || !password || !confirmPassword) {
-      setError('Fill in all fields to continue.')
-      return
-    }
-    if (!/^\+?[0-9]{7,15}$/.test(phoneNumber.replace(/\s/g, ''))) {
-      setError('Enter a valid phone number.')
-      return
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords don\'t match.')
-      return
-    }
-    if (!agreedToTerms) {
-      setError('Agree to the terms to create an account.')
-      return
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<RegisterFormValues>({
+    resolver: yupResolver(registerSchema),
+    defaultValues: {
+      userName: '',
+      emailAddress: '',
+      phoneNumber: '',
+      password: '',
+      confirmPassword: '',
+      agreedToTerms: false,
+    },
+  })
 
-    setIsSubmitting(true)
+  const onSubmit = async (data: RegisterFormValues) => {
     try {
-      // Replace with your real signup call
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      navigate('/')
-    } catch {
-      setError('Could not create your account. Try again.')
-    } finally {
-      setIsSubmitting(false)
+      // Strip front-end-only fields; profileImage stays empty at signup
+      // to match @IsEmpty() on the backend.
+      await createUser({
+        userName: data.userName,
+        emailAddress: data.emailAddress,
+        phoneNumber: data.phoneNumber,
+        password: data.password,
+        profileImage: '',
+      }).unwrap()
+
+      navigate('/login')
+    } catch (err: any) {
+      setError('root', {
+        message:
+          err?.data?.message ??
+          'Could not create your account. Check your details and try again.',
+      })
     }
   }
 
@@ -99,68 +133,56 @@ const Register = () => {
             <p className="text-sm text-gray-500">Start browsing and saving homes across Eldoret.</p>
           </div>
 
-          {error && (
+          {errors.root && (
             <div className="mb-4 px-3.5 py-2.5 rounded-lg bg-red-50 border border-red-100 text-sm text-red-700">
-              {error}
+              {errors.root.message}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Jane Wanjiru"
-                    autoComplete="name"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3.5">
+            <div>
+              <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  id="userName"
+                  type="text"
+                  placeholder="janewanjiru"
+                  autoComplete="username"
+                  {...register('userName')}
+                  className={`w-full pl-9 pr-3 py-2.5 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                    errors.userName ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
               </div>
-
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
-                <div className="relative">
-                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="janewanjiru"
-                    autoComplete="username"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
+              {errors.userName && (
+                <p className="mt-1 text-xs text-red-600">{errors.userName.message}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="emailAddress" className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    id="email"
+                    id="emailAddress"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
                     autoComplete="email"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    {...register('emailAddress')}
+                    className={`w-full pl-9 pr-3 py-2.5 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      errors.emailAddress ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   />
                 </div>
+                {errors.emailAddress && (
+                  <p className="mt-1 text-xs text-red-600">{errors.emailAddress.message}</p>
+                )}
               </div>
 
               <div>
@@ -172,13 +194,17 @@ const Register = () => {
                   <input
                     id="phoneNumber"
                     type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="0712 345 678"
                     autoComplete="tel"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    {...register('phoneNumber')}
+                    className={`w-full pl-9 pr-3 py-2.5 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      errors.phoneNumber ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   />
                 </div>
+                {errors.phoneNumber && (
+                  <p className="mt-1 text-xs text-red-600">{errors.phoneNumber.message}</p>
+                )}
               </div>
             </div>
 
@@ -192,11 +218,12 @@ const Register = () => {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="8+ characters"
                     autoComplete="new-password"
-                    className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    {...register('password')}
+                    className={`w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      errors.password ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   />
                   <button
                     type="button"
@@ -207,6 +234,9 @@ const Register = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+                )}
               </div>
 
               <div>
@@ -218,11 +248,12 @@ const Register = () => {
                   <input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter"
                     autoComplete="new-password"
-                    className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    {...register('confirmPassword')}
+                    className={`w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   />
                   <button
                     type="button"
@@ -233,34 +264,41 @@ const Register = () => {
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>
+                )}
               </div>
             </div>
 
-            <label className="flex items-start gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="w-4 h-4 mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-              />
-              <span className="text-xs text-gray-600">
-                I agree to the{' '}
-                <Link to="/terms" className="text-orange-600 hover:text-orange-700 font-medium">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-orange-600 hover:text-orange-700 font-medium">
-                  Privacy Policy
-                </Link>
-              </span>
-            </label>
+            <div>
+              <label className="flex items-start gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  {...register('agreedToTerms')}
+                  className="w-4 h-4 mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                />
+                <span className="text-xs text-gray-600">
+                  I agree to the{' '}
+                  <Link to="/terms" className="text-orange-600 hover:text-orange-700 font-medium">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/privacy" className="text-orange-600 hover:text-orange-700 font-medium">
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+              {errors.agreedToTerms && (
+                <p className="mt-1 text-xs text-red-600">{errors.agreedToTerms.message}</p>
+              )}
+            </div>
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isLoading}
               className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors duration-200"
             >
-              {isSubmitting ? 'Creating account...' : 'Create account'}
+              {isLoading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 

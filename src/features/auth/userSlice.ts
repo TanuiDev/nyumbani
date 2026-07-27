@@ -6,7 +6,8 @@ export type userSate = {
     id: number;
     userName: string;
     emailAddress: string;
-    phoneNumber: string;   
+    phoneNumber: string;
+    profileImage: string | null;   
     role: string;
   } | null;
 };
